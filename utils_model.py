@@ -1,7 +1,7 @@
 import os, torch
 from openai import OpenAI
 from openai import AzureOpenAI
-import requests
+import requests, json
 from tqdm import tqdm
 import numpy as np
 from tenacity import (
@@ -19,9 +19,13 @@ from datetime import datetime
 
 
 def prepare_vllm(model="meta-llama/Llama-2-7b-chat-hf", temperature=0, 
-                 max_tokens=64, tensor_parallel_size=1):
-    sampling_params = SamplingParams(temperature=temperature, max_tokens=max_tokens)
+                 max_tokens=64, tensor_parallel_size=None):
+    if 'glm-4-9b' in model: 
+        sampling_params = SamplingParams(temperature=temperature, max_tokens=max_tokens, stop_token_ids = [151329, 151336, 151338])
+    else:
+        sampling_params = SamplingParams(temperature=temperature, max_tokens=max_tokens)
     tokenizer = AutoTokenizer.from_pretrained(model,trust_remote_code=True)
+    tensor_parallel_size = torch.cuda.device_count() if tensor_parallel_size == None else tensor_parallel_size
     llm = LLM(model=model,tensor_parallel_size=tensor_parallel_size,trust_remote_code=True, gpu_memory_utilization=0.8)
     return llm, sampling_params, tokenizer
 
@@ -44,26 +48,48 @@ def prepare_hf_model(model_id):
     return model, tokenizer
 
 
-def get_hf_completion(model, tokenizer, prompts, max_new_tokens=20, batch_size=2):
+# def get_hf_completion(model, tokenizer, prompts, max_new_tokens=20, batch_size=2):
+#     all_responses = []
+#     # sort the prompts based on length and batch them accordingly, after completion sort them back to original order
+#     length_sorted_idx = np.argsort([len(sen) for sen in prompts])[::-1]
+#     prompts_sorted = [prompts[idx] for idx in length_sorted_idx]
+
+#     for i in tqdm(range(0, len(prompts_sorted), batch_size)):
+#         batch_prompts = prompts_sorted[i:i+batch_size]
+
+#         # inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True, max_length=model.config.max_seq_len-max_new_tokens).to(model.device)
+#         inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to(model.device)
+#         with torch.no_grad():
+#             output_sequences = model.generate(inputs["input_ids"], max_new_tokens=max_new_tokens, do_sample=False)
+            
+#         output_sequences = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs["input_ids"],output_sequences)]
+#         responses = tokenizer.batch_decode(output_sequences, skip_special_tokens=True)
+#         # outputs = [response.replace(p, '') for response, p in zip(responses, batch_prompts)]
+#         all_responses.extend(responses)
+
+#     all_responses = [all_responses[idx] for idx in np.argsort(length_sorted_idx)]
+#     return all_responses
+
+def get_hf_completion(model, tokenizer, prompts, max_new_tokens=20, batch_size=1):
     all_responses = []
+    
     # sort the prompts based on length and batch them accordingly, after completion sort them back to original order
     length_sorted_idx = np.argsort([len(sen) for sen in prompts])[::-1]
     prompts_sorted = [prompts[idx] for idx in length_sorted_idx]
-
     for i in tqdm(range(0, len(prompts_sorted), batch_size)):
         batch_prompts = prompts_sorted[i:i+batch_size]
 
-        # inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True, max_length=model.config.max_seq_len-max_new_tokens).to(model.device)
-        inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to(model.device)
+        if model.config.architectures[0] == 'MPTForCausalLM':
+            inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True, max_length=model.config.max_seq_len-max_new_tokens).to(model.device)
+        else:
+            inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to(model.device)
         with torch.no_grad():
-            output_sequences = model.generate(inputs["input_ids"], max_new_tokens=max_new_tokens, do_sample=False)
-            
-        output_sequences = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs["input_ids"],output_sequences)]
+            output_sequences = model.generate(inputs["input_ids"], max_new_tokens=max_new_tokens, do_sample=False, eos_token_id=tokenizer.eos_token_id)
         responses = tokenizer.batch_decode(output_sequences, skip_special_tokens=True)
-        # outputs = [response.replace(p, '') for response, p in zip(responses, batch_prompts)]
-        all_responses.extend(responses)
-
+        outputs = [response.replace(p, '') for response, p in zip(responses, batch_prompts)]
+        all_responses.extend(outputs)
     all_responses = [all_responses[idx] for idx in np.argsort(length_sorted_idx)]
+    
     return all_responses
 
 
@@ -109,6 +135,9 @@ def parallel_query_chatgpt_model(args):
 def parallel_query_chatgpt_model_azure(args):
     return query_chatgpt_model_azure(*args)
 
+def parallel_query_openrouter_model(args):
+    return query_openrouter_model(*args)
+
 
 def parallel_query_claude_model(args):
     return query_claude_model(*args)
@@ -147,12 +176,39 @@ def query_chatgpt_model(api_key, messages, model="gpt-3.5-turbo-0125", max_token
         # output = 'CAUTION: Problematic output!'
 
     return output
+    
+
+@retry(wait=wait_fixed(5)+ wait_random(0, 5),stop=stop_after_attempt(3), before=before_retry_fn)
+def query_openrouter_model(api_key, messages, model="openai/gpt-4o-mini", max_tokens=64, temperature=0):
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,)
+    try:
+        completions = client.chat.completions.create(
+            extra_headers={},
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            n=1,
+            stop=None,
+            temperature=temperature,
+        )
+        output = completions.choices[0].message.content.strip()
+
+    except Exception as e:
+        output = 'caution: problematic output, [[1]]'
+        print(e)
+        # print("[ERROR]", e)
+        # output = 'CAUTION: Problematic output!'
+
+    return output
 
 
 @retry(wait=wait_fixed(5)+ wait_random(0, 5),stop=stop_after_attempt(3), before=before_retry_fn)
 def query_chatgpt_model_azure(api_key, messages, model="gpt4-1106", max_tokens=64, temperature=0):
     client = AzureOpenAI(
-        azure_endpoint= os.environ["AZURE_OPENAI_ENDPOINT"],
+        azure_endpoint= os.getenv("AZURE_OPENAI_ENDPOINT"),
         api_key=api_key,
         api_version="2024-02-15-preview"
     )
@@ -314,6 +370,9 @@ def query_bloom_model(api_key, prompt, model_id="bigscience/bloom"):
             raise e
     return pred
 
+def print_json(ex):
+    print(json.dumps(ex, indent=2, ensure_ascii=False))
+
 
 def test_chatgpt():
     api_key = os.environ["OPENAI_API_KEY"]
@@ -382,9 +441,31 @@ def test_hf():
 
 
 def test_azure():
-    api_key = os.environ["AZURE_OPENAI_KEY"]
-    output = query_chatgpt_model_azure(api_key, "What is the capital of France?")
+    api_key = os.getenv("AZURE_OPENAI_KEY")
+    messages=[
+        {
+            "role": "user",
+            "content": "What is the capital of France?"
+        }
+    ]
+    output = query_chatgpt_model_azure(api_key, messages=messages, model="gpt4o-0513")
     print(f"ChatGPT: {output}")
+
+def test_openrouter():
+    api_key = os.environ["OPENROUTER_API_KEY"]
+    messages=[
+        {
+            "role": "user",
+            "content": "What is the capital of France and Germany?"
+        }
+    ]
+    list_models = ['anthropic/claude-3.5-sonnet', 'openai/gpt-4o-2024-08-06', 'google/gemini-pro-1.5',
+               'google/gemini-flash-1.5', 'openai/gpt-4o-mini', 'anthropic/claude-3-haiku', 
+               'qwen/qwen-2.5-72b-instruct', 'meta-llama/llama-3.1-70b-instruct', 'meta-llama/llama-3.1-405b-instruct'
+               ]
+    for model in list_models:
+        output = query_openrouter_model(api_key, messages=messages, model=model)
+        print(f"model: {output}")
 
 
 if __name__ == "__main__":
@@ -393,6 +474,7 @@ if __name__ == "__main__":
     # test_bloom()
     # test_vllm()
     # test_hf()
-    test_claude()
+    # test_claude()
     # test_gemini()
-    # test_azure()
+    test_azure()
+    # test_openrouter()

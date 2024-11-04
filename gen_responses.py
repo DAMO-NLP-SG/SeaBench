@@ -28,15 +28,21 @@ def print_json(obj):
 dic_api_functions = {
     "openai": parallel_query_chatgpt_model,
     "claude": parallel_query_claude_model,
-    "together": parallel_query_together_model
+    "together": parallel_query_together_model,
+    "azure": parallel_query_chatgpt_model_azure,
+    "openrouter": parallel_query_openrouter_model,
 }
 
 system_message_map = {
     "SeaLLM-7B-v2.5": "You are a helpful assistant.",
-    "SeaLLM-7B-v2": "You are helful assistant.",
+    "SeaLLM-7B-v2": "You are a helful assistant.",
     "Sailor-7B-Chat": "You are a helpful assistant.",
     "gpt-3.5-turbo-0125": "You are a helpful assistant.",
-    "claude-3-haiku-20240307": ""
+    "claude-3-haiku-20240307": "",
+    "sea-lion-7b-instruct":"",
+    "gemma-2-9b-it":"",
+    "gemma-2-27b-it":"",
+    "Mistral-7B-Instruct-v0.3":"",
 }
 
 dic_api_keys = {
@@ -46,18 +52,35 @@ dic_api_keys = {
     "together": os.getenv("TOGETHER_API_KEY"),
     "azure": os.getenv("AZURE_OPENAI_KEY"),
     "vllm": "vllm",
-    "hf": "hf"
+    "hf": "hf",
+    'openrouter': os.getenv("OPENROUTER_API_KEY"),
 }
 
 
 def process_model(questions, model_id, model_type="vllm", system_prompt="", 
-                  api_key=None, max_tokens=2048, temperature=0, output_dir='outputs'):
+                  api_key=None, max_tokens=2048, temperature=0, output_dir='outputs',args=None):
     
     # create output_dir if not exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     model_name = model_id.split('/')[-1]
+
+    # check whether output file exists
+    if os.path.exists(os.path.join(output_dir, f"{model_name}.jsonl")):
+        if args.update:
+            if args.unit_ids is not None:
+                unit_ids = set(args.unit_ids.split(','))
+                print(f"Output file {os.path.join(output_dir, f'{model_name}.jsonl')} exists. Updating the responses with unit_ids {unit_ids}")
+                questions_old = jsonl_to_list(os.path.join(output_dir, f"{model_name}.jsonl"))
+                questions = [q for q in questions if q['unit_id'] in unit_ids]
+                questions_old = [q for q in questions_old if q['unit_id'] not in unit_ids]
+            else: 
+                print(f"Output file {os.path.join(output_dir, f'{model_name}.jsonl')} exists. Updating all the responses")
+        else:
+            print(f"Output file {os.path.join(output_dir, f'{model_name}.jsonl')} exists. Skipping the model")
+            return
+
     if model_type == "vllm":
         # run model locally with vllm
         llm, sampling_params, tokenizer = prepare_vllm(model_id, max_tokens=max_tokens, temperature=temperature)
@@ -92,7 +115,7 @@ def process_model(questions, model_id, model_type="vllm", system_prompt="",
         responses = get_hf_completion(llm, tokenizer, list_prompt, max_new_tokens=max_tokens, batch_size=1)
     else:
         prompt_args = [(api_key, message, model_id, max_tokens, temperature) for message in list_message]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
             responses = list(tqdm(executor.map(parallel_call, prompt_args), total=len(prompt_args), desc=f"Conducting inference"))
 
     # save model generation as assistant
@@ -109,7 +132,7 @@ def process_model(questions, model_id, model_type="vllm", system_prompt="",
         responses2 = get_hf_completion(llm, tokenizer, list_prompt, max_new_tokens=max_tokens, batch_size=1)
     else:
         prompt_args = [(api_key, message, model_id, max_tokens, temperature) for message in list_message]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
             responses2 = list(tqdm(executor.map(parallel_call, prompt_args), total=len(prompt_args), desc=f"Conducting inference"))
 
     # add responses of two turns to questions
@@ -119,32 +142,39 @@ def process_model(questions, model_id, model_type="vllm", system_prompt="",
         # q['prompt'] = list_prompt[i]
 
     # save the questions to a jsonl file
-    list_to_jsonl(questions, f'{output_dir}/{model_name}.jsonl')
+    if args.update and args.unit_ids is not None:
+        questions = questions_old + questions
+        questions = sorted(questions, key=lambda x: int(x['unit_id'].split('-')[-1]))
+        list_to_jsonl(questions, f'{output_dir}/{model_name}.jsonl')
+    else:
+        list_to_jsonl(questions, f'{output_dir}/{model_name}.jsonl')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run model on public questions')
     parser.add_argument('--data_path', type=str, default= "data/public-questions.jsonl",help='dataset path')
     parser.add_argument('--model_id', type=str, default= "SeaLLMs/SeaLLM-7B-v2.5" ,help='model id')
-    parser.add_argument('--model_type', type=str, default="default", choices=["default","vllm","hf", "openai", "claude", "together"], help='model type')
+    parser.add_argument('--model_type', type=str, default="default", choices=["default","vllm","hf", "openai", "azure","claude", "together",'openrouter'], help='model type')
     parser.add_argument('--system_prompt', type=str, default= "",help='system prompt for chat model')
     parser.add_argument('--api_key', type=str, default=None, help='api key')
+    parser.add_argument("--max_workers", type=int, default=10)
     parser.add_argument('--max_tokens', type=int, default=2048, help='max tokens')
     parser.add_argument('--temperature', type=float, default=0, help='temperature')
     parser.add_argument('--output_dir', type=str, default='outputs', help='output directory')
+    parser.add_argument('--update', type=int, default=0, help='whether update output file')
+    parser.add_argument('--unit_ids', type=str, default=None, help='unit ids to update, if None, update all the questions')
     args = parser.parse_args()
 
     # guess the detailed model type if not specifically given
     if args.model_type == "default":
         if "gpt-3.5" in args.model_id or "gpt-4" in args.model_id:
             args.model_type = "openai"
-        elif "gemini" in args.model_id:
-            args.model_type = "gemini"
-        elif "claude" in args.model_id:
-            args.model_type = "claude"
-        elif 'aisingapore/sea-lion-7b' in args.model_id:
-            # ["aisingapore/sea-lion-7b", "aisingapore/sea-lion-7b-instruct"]
-            args.model_type = "hf"
+        # elif "gemini" in args.model_id:
+        #     args.model_type = "gemini"
+        # elif "claude" in args.model_id:
+        #     args.model_type = "claude"
+        elif "gemini" in args.model_id or "claude" in args.model_id:
+            args.model_type = "openrouter"
         else:
             args.model_type = "vllm"
 
@@ -156,4 +186,4 @@ if __name__ == "__main__":
     # questions = questions[:2]
     
     process_model(questions, args.model_id, args.model_type, args.system_prompt, 
-                  args.api_key, args.max_tokens, args.temperature, args.output_dir)
+                  args.api_key, args.max_tokens, args.temperature, args.output_dir,args)
