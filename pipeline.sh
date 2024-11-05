@@ -21,7 +21,7 @@ CUDA_VISIBLE_DEVICES=0 python gen_responses.py \
   --data_path $data_path \
   --output_dir $output_dir 
 
-# export OPENAI_API_KEY_test=xxx  # set the OpenAI API key
+# export OPENAI_API_KEY=xxx  # set the OpenAI API key
 python gen_judgements.py \
   --judge_model $judge_model \
   --testing_model $testing_model \

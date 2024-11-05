@@ -90,14 +90,9 @@ if __name__ == "__main__":
     parser.add_argument("--judge_model", type=str, default="gpt-4o-2024-08-06")
     parser.add_argument("--results_folder", type=str, default="results")
     parser.add_argument("--judgement_dir", type=str, default='./model_judgement/')  
-    # parser.add_argument("--testing_model", type=str, default="chatgpt")
     args = parser.parse_args()
 
     args.judge_model = args.judge_model.split('/')[-1]
-
-    # args.testing_model = args.testing_model.split('/')[-1]
-    # judgement_file = f'./model_judgement/{args.judge_model}_eval_{args.testing_model}_single.jsonl'
-    # judgement_file = f'./model_judgement/gpt4t_eval_{args.testing_model}_single.jsonl'
 
     # find all eval files ending with _single.jsonl
     judgement_folder = args.judgement_dir
@@ -158,11 +153,6 @@ if __name__ == "__main__":
 
     # save to results folder
     os.makedirs(args.results_folder, exist_ok=True)
-    # df_results_lang.to_csv(args.results_folder + 'results_lang.csv', index=False)
-    # df_results_type.to_csv(args.results_folder + 'results_type.csv', index=False)
-    # df_results_type_avg.to_csv(args.results_folder + 'results_type_avg.csv', index=False)
-    # df_results_lang_avg.to_csv(args.results_folder + 'results_lang_avg.csv', index=False)
-
     df_results_lang.to_csv(f"{args.results_folder}/results_lang_{args.judge_model}.csv", index=False)
     df_results_type.to_csv(f"{args.results_folder}/results_type_{args.judge_model}.csv", index=False)
     df_results_type_avg.to_csv(f"{args.results_folder}/results_type_avg_{args.judge_model}.csv", index=False)

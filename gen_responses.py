@@ -153,7 +153,7 @@ def process_model(questions, model_id, model_type="vllm", system_prompt="",
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run model on public questions')
     parser.add_argument('--data_path', type=str, default= "data/public-questions.jsonl",help='dataset path')
-    parser.add_argument('--model_id', type=str, default= "SeaLLMs/SeaLLM-7B-v2.5" ,help='model id')
+    parser.add_argument('--model_id', type=str, default= "SeaLLMs/SeaLLMs-v3-7B-Chat" ,help='model id')
     parser.add_argument('--model_type', type=str, default="default", choices=["default","vllm","hf", "openai", "azure","claude", "together",'openrouter'], help='model type')
     parser.add_argument('--system_prompt', type=str, default= "",help='system prompt for chat model')
     parser.add_argument('--api_key', type=str, default=None, help='api key')

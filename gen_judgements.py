@@ -144,7 +144,7 @@ def make_judge_single(data, judge_prompts, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--judge_file", type=str, default="data/judge_prompts.jsonl")
-    parser.add_argument("--judge_model", type=str, default="gpt-4-turbo-2024-04-09")
+    parser.add_argument("--judge_model", type=str, default="gpt-4o-2024-08-06")
     parser.add_argument("--judge_model_type",default='openai', choices=['openai', 'azure', 'openrouter'],
                         type=str, help='judge model endpoint, openai or azure')
     parser.add_argument("--testing_model", type=str, default="chatgpt")
