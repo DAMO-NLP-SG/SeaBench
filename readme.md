@@ -6,10 +6,19 @@
 
 This repository contains code and data for SeaBench, a comprehensive benchmark designed to evaluate large language models' (LLMs) capabilities in Southeast Asian (SEA) languages. Specifically, SeaBench assesses models' multi-turn and instruction-following capabilities across Indonesian, Thai, and Vietnamese languages through carefully crafted evaluation tasks.
 
-# 1. Data
+# Data
 All the data is under the `data` folder. Currently, only `public-questions.jsonl` here (private questions are hidden).
 
 # Evaluation
+## Setup enironment
+```
+git clone https://github.com/DAMO-NLP-SG/SeaBench.git
+cd SeaBench
+conda create -n SeaBench python=3.9
+conda activate SeaBench
+pip install -r requirement.txt
+```
+
 ## 1. run inference to get model's prediction
 You need to first generate model's response, you can directly run `python gen_responses.py`.
 Currently it supports some models (both open-source or commercial), feel free to add support for models.
