@@ -24,7 +24,7 @@ def write_jsonl_to_path(data, file_path):
         writer.write_all(data)
 
 
-type2aspects = read_jsonl_from_path('./data/priority-aspects.jsonl')[0]
+type2aspects = read_jsonl_from_path('./prompts/priority-aspects.jsonl')[0]
 # print(type2aspects['coding'])
 
 
@@ -143,7 +143,7 @@ def make_judge_single(data, judge_prompts, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--judge_file", type=str, default="data/judge_prompts.jsonl")
+    parser.add_argument("--judge_file", type=str, default="prompts/judge_prompts.jsonl")
     parser.add_argument("--judge_model", type=str, default="gpt-4o-2024-08-06")
     parser.add_argument("--judge_model_type",default='openai', choices=['openai', 'azure', 'openrouter'],
                         type=str, help='judge model endpoint, openai or azure')

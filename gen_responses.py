@@ -6,6 +6,8 @@ import concurrent.futures
 import jsonlines
 from datetime import datetime
 import json
+from datasets import load_dataset
+
 now = datetime.now()
 currentDateTime = now.strftime("%d/%m/%Y")
 
@@ -152,7 +154,7 @@ def process_model(questions, model_id, model_type="vllm", system_prompt="",
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run model on public questions')
-    parser.add_argument('--data_path', type=str, default= "data/public-questions.jsonl",help='dataset path')
+    parser.add_argument('--data_path', type=str, default= "SeaLLMs/SeaBench",help='dataset path')
     parser.add_argument('--model_id', type=str, default= "SeaLLMs/SeaLLMs-v3-7B-Chat" ,help='model id')
     parser.add_argument('--model_type', type=str, default="default", choices=["default","vllm","hf", "openai", "azure","claude", "together",'openrouter'], help='model type')
     parser.add_argument('--system_prompt', type=str, default= "",help='system prompt for chat model')
@@ -163,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', type=str, default='outputs', help='output directory')
     parser.add_argument('--update', type=int, default=0, help='whether update output file')
     parser.add_argument('--unit_ids', type=str, default=None, help='unit ids to update, if None, update all the questions')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 
     # guess the detailed model type if not specifically given
@@ -180,10 +183,11 @@ if __name__ == "__main__":
 
     args.api_key = dic_api_keys[args.model_type] if args.api_key is None else args.api_key
 
-    # todo - add hf dataset loading
-    questions = jsonl_to_list(args.data_path)
-    # print(questions[0])
-    # questions = questions[:2]
+    ds = load_dataset(args.data_path)['train']
+    questions = ds.to_pandas().to_dict(orient='records')
+    
+    if args.debug:
+        questions = questions[:10]
     
     process_model(questions, args.model_id, args.model_type, args.system_prompt, 
                   args.api_key, args.max_tokens, args.temperature, args.output_dir,args)

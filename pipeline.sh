@@ -1,4 +1,4 @@
-data_path=data/public-questions.jsonl
+data_path=SeaLLMs/SeaBench
 output_dir=outputs
 judgement_dir=model_judgement
 results_folder=results
@@ -7,22 +7,18 @@ judge_model=gpt-4o-2024-08-06
 judge_model_type=openai
 
 for testing_model in \
-google/gemma-2-27b-it \
-qwen/qwen-2.5-72b-instruct \
-qwen/qwen-2-72b-instruct \
-meta-llama/llama-3.1-70b-instruct \
-meta-llama/llama-3-70b-instruct \
+SeaLLMs/SeaLLMs-v3-7B-Chat \
 ; do
 
 CUDA_VISIBLE_DEVICES=0 python gen_responses.py \
   --model_id $testing_model \
-  --model_type openrouter \
+  --model_type default \
   --max_token 2048 \
   --data_path $data_path \
-  --output_dir $output_dir 
+  --output_dir $output_dir
 
 # export OPENAI_API_KEY=xxx  # set the OpenAI API key
-python gen_judgements.py \
+CUDA_VISIBLE_DEVICES=0 python gen_judgements.py \
   --judge_model $judge_model \
   --testing_model $testing_model \
   --mode single \

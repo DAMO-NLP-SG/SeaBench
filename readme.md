@@ -4,10 +4,10 @@
 <a href="https://huggingface.co/spaces/SeaLLMs/SeaExam_leaderboard" target="_blank" rel="noopener"> 🤗 Leaderboard</a>
 </p>
 
-This repository contains code and data for SeaBench, a comprehensive benchmark designed to evaluate large language models' (LLMs) capabilities in Southeast Asian (SEA) languages. Specifically, SeaBench assesses models' multi-turn and instruction-following capabilities across Indonesian, Thai, and Vietnamese languages through carefully crafted evaluation tasks.
+This repository contains evaluation code for SeaBench, a comprehensive benchmark designed to assess the capabilities of large language models (LLMs) in Southeast Asian (SEA) languages. Specifically, SeaBench evaluates models' multi-turn and instruction-following abilities across Indonesian, Thai, and Vietnamese languages through carefully crafted evaluation tasks.
 
 # Data
-All the data is under the `data` folder. Currently, only `public-questions.jsonl` here (private questions are hidden).
+All the data is available [here](https://huggingface.co/datasets/SeaLLMs/SeaBench). Currently, only `public-questions.jsonl` here (private questions are hidden to avoid data contamination).
 
 # Evaluation
 ## Setup enironment
@@ -21,7 +21,7 @@ pip install -r requirement.txt
 
 ## 1. run inference to get model's prediction
 You need to first generate model's response, you can directly run `python gen_responses.py`.
-Currently it supports some models (both open-source or commercial), feel free to add support for models.
+It supports both open-source or commercial models. 
 
 Example:
 ```
@@ -36,7 +36,7 @@ Either way, the model prediction would be in `./outputs/{model_name}.jsonl`
 * It should add two keys for each row compared to `publuc-questions.jsonl`: modelname_1 and modelname_2, which are the model's responses at the 1st and 2nd turn
 
 ## 2. judge model evaluation
-run `python gen_judgements.py --testing_model model_name`
+Specify openai API key: `export OPENAI_API_KEY=xxx`, then run `python gen_judgements.py --testing_model model_name`
 * by default, it will use gpt-4o-2024-08-06 as the evaluator
 * the predictions will be written to `./model_judgement/` directory
 
