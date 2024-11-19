@@ -1,6 +1,8 @@
 # SeaBench: Benchmarking LLMs for Southeast Aisa languages with Open-ended Questions
 
 <p align="center">
+<a href="https://huggingface.co/datasets/SeaLLMs/SeaBench" target="_blank" rel="noopener"> 🤗 Dataset</a>
+&nbsp;&nbsp;
 <a href="https://huggingface.co/spaces/SeaLLMs/SeaExam_leaderboard" target="_blank" rel="noopener"> 🤗 Leaderboard</a>
 </p>
 
@@ -8,6 +10,8 @@ This repository contains evaluation code for SeaBench, a comprehensive benchmark
 
 # Data
 All the data is available [here](https://huggingface.co/datasets/SeaLLMs/SeaBench). Currently, only `public-questions.jsonl` here (private questions are hidden to avoid data contamination).
+
+Please also check SeaExam dataset [here](https://github.com/DAMO-NLP-SG/SeaExam) for more evaluation tasks on SEA languages.
 
 # Evaluation
 ## Setup enironment
