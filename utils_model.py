@@ -170,10 +170,8 @@ def query_chatgpt_model(api_key, messages, model="gpt-3.5-turbo-0125", max_token
         output = completions.choices[0].message.content.strip()
 
     except Exception as e:
-        output = 'caution: problematic output, [[1]]'
-        print(e)
-        # print("[ERROR]", e)
-        # output = 'CAUTION: Problematic output!'
+        output = 'caution: problematic output!'
+        print("[ERROR]", e)
 
     return output
     
@@ -197,10 +195,8 @@ def query_openrouter_model(api_key, messages, model="openai/gpt-4o-mini", max_to
         output = completions.choices[0].message.content.strip()
 
     except Exception as e:
-        output = 'caution: problematic output, [[1]]'
-        print(e)
-        # print("[ERROR]", e)
-        # output = 'CAUTION: Problematic output!'
+        output = 'caution: problematic output!'
+        print("[ERROR]", e)
 
     return output
 
@@ -224,10 +220,8 @@ def query_chatgpt_model_azure(api_key, messages, model="gpt4-1106", max_tokens=6
         output = completions.choices[0].message.content.strip()
 
     except Exception as e:
-        output = 'caution: problematic output, [[1]]'
-        print(e)
-        # print("[ERROR]", e)
-        # output = 'CAUTION: Problematic output!'
+        output = 'caution: problematic output!'
+        print("[ERROR]", e)
         
     return output
 
