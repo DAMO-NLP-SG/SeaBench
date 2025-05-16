@@ -4,6 +4,8 @@
 <a href="https://huggingface.co/datasets/SeaLLMs/SeaBench" target="_blank" rel="noopener"> 🤗 Dataset</a>
 &nbsp;&nbsp;
 <a href="https://huggingface.co/spaces/SeaLLMs/SeaExam_leaderboard" target="_blank" rel="noopener"> 🤗 Leaderboard</a>
+&nbsp;&nbsp;
+<a href="https://aclanthology.org/2025.findings-naacl.341/" target="_blank" rel="noopener"> Paper</a>
 </p>
 
 This repository contains evaluation code for SeaBench, a comprehensive benchmark designed to assess the capabilities of large language models (LLMs) in Southeast Asian (SEA) languages. Specifically, SeaBench evaluates models' multi-turn and instruction-following abilities across Indonesian, Thai, and Vietnamese languages through carefully crafted evaluation tasks.
@@ -59,6 +61,22 @@ You can find our interactive leaderboard [🤗 Here](https://huggingface.co/spac
 # Citation
 If you find SeaBench useful for your research, please consider citing our papers:
 ```
+@inproceedings{liu-etal-2025-seaexam,
+    title = "{S}ea{E}xam and {S}ea{B}ench: Benchmarking {LLM}s with Local Multilingual Questions in {S}outheast {A}sia",
+    author = "Liu, Chaoqun  and Zhang, Wenxuan  and Ying, Jiahao  and Aljunied, Mahani  and Luu, Anh Tuan  and  Bing, Lidong",
+    editor = "Chiruzzo, Luis  and
+      Ritter, Alan  and
+      Wang, Lu",
+    booktitle = "Findings of the Association for Computational Linguistics: NAACL 2025",
+    month = apr,
+    year = "2025",
+    address = "Albuquerque, New Mexico",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.findings-naacl.341/",
+    pages = "6119--6136",
+    ISBN = "979-8-89176-195-7"
+}
+
 @article{damonlp2024seallm3,
   author = {Wenxuan Zhang*, Hou Pong Chan*, Yiran Zhao*, Mahani Aljunied*,
             Jianyu Wang*, Chaoqun Liu, Yue Deng, Zhiqiang Hu, Weiwen Xu,
